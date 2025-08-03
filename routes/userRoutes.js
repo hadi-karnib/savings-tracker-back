@@ -6,6 +6,7 @@ import {
   refreshSpouseCode,
   linkSpouseByCode,
   unlinkSpouse,
+  getSpouseCode,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authmiddleware.js";
 
@@ -18,5 +19,6 @@ router.post("/logout", logoutUser);
 router.post("/refresh-spouse-code", protect, refreshSpouseCode);
 router.post("/link-spouse", protect, linkSpouseByCode);
 router.post("/unlink-spouse", protect, unlinkSpouse);
+router.get("/spouse-code", protect, getSpouseCode);
 
 export default router;

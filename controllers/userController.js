@@ -77,10 +77,15 @@ export const linkSpouseByCode = async (req, res) => {
 
   const currentUser = await User.findById(req.user._id);
 
-  if (currentUser.spouse || spouse.spouse)
+  if (currentUser._id.equals(spouse._id)) {
+    return res.status(400).json({ message: "You cannot link to yourself" });
+  }
+
+  if (currentUser.spouse || spouse.spouse) {
     return res
       .status(400)
       .json({ message: "One of you already has a spouse linked" });
+  }
 
   currentUser.spouse = spouse._id;
   spouse.spouse = currentUser._id;
@@ -90,6 +95,7 @@ export const linkSpouseByCode = async (req, res) => {
 
   res.json({ message: "Spouse linked successfully!" });
 };
+
 export const unlinkSpouse = async (req, res) => {
   const currentUser = await User.findById(req.user._id);
   if (!currentUser.spouse)
@@ -101,4 +107,9 @@ export const unlinkSpouse = async (req, res) => {
   await currentUser.save();
   await spouse.save();
   res.json({ message: "Spouse unlinked successfully!" });
+};
+
+export const getSpouseCode = async (req, res) => {
+  const user = await User.findById(req.user._id).select("spouseCode");
+  res.status(200).json({ spouseCode: user.spouseCode });
 };

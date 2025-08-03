@@ -22,7 +22,7 @@ app.use(morgan("dev")); // Logs HTTP requests
 
 const PORT = process.env.PORT || 4000;
 
-app.use("/api", userRouter);
+app.use("/api/user", userRouter);
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
