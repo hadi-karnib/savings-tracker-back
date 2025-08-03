@@ -1,3 +1,4 @@
+// models/Transaction.js
 import mongoose from "mongoose";
 
 const transactionSchema = new mongoose.Schema(
@@ -6,25 +7,27 @@ const transactionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
-    type: {
-      type: String,
-      enum: ["saving", "expense"],
-      required: true,
-    },
+
     amount: {
       type: Number,
       required: true,
       min: 0,
     },
+
     category: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
       required: true,
     },
+
     note: {
       type: String,
+      trim: true,
       default: "",
     },
+
     date: {
       type: Date,
       default: Date.now,
