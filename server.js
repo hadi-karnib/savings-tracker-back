@@ -7,6 +7,7 @@ import morgan from "morgan";
 import connectDB from "./config/db.js";
 import userRouter from "./routes/userRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
+import transactionRouter from "./routes/transactionRoutes.js";
 const app = express();
 
 // Middleware
@@ -25,6 +26,7 @@ const PORT = process.env.PORT || 4000;
 
 app.use("/api/user", userRouter);
 app.use("/api/category", categoryRouter);
+app.use("/api/transaction", transactionRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
