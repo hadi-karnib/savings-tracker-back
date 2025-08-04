@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
 import userRouter from "./routes/userRoutes.js";
+import categoryRouter from "./routes/categoryRoutes.js";
 const app = express();
 
 // Middleware
@@ -23,6 +24,8 @@ app.use(morgan("dev")); // Logs HTTP requests
 const PORT = process.env.PORT || 4000;
 
 app.use("/api/user", userRouter);
+app.use("/api/category", categoryRouter);
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

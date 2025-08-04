@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
     spouseCode: {
       type: String,
       unique: true,
