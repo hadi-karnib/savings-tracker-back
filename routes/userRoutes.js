@@ -11,6 +11,7 @@ import {
   verifyEmailRequest,
   verifyEmailConfirm,
   getMe,
+  deleteUser,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authmiddleware.js";
 
@@ -23,6 +24,7 @@ router.post("/verify-email/confirm", verifyEmailConfirm); // confirm code -> log
 router.post("/login", loginUser); // will 403 if not verified
 router.post("/logout", logoutUser);
 router.get("/me", protect, getMe);
+router.delete("/:id", protect, deleteUser);
 
 // Spouse features
 router.post("/refresh-spouse-code", protect, refreshSpouseCode);

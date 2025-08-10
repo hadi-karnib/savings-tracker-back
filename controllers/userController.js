@@ -1,3 +1,4 @@
+// controllers/userController.js
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import { generateToken } from "../utils/generateToken.js";
@@ -6,17 +7,45 @@ import {
   requestOtp,
   verifyOtpAndConsume,
   invalidateAllOtpsFor,
-} from "./emailController.js";
+} from "./emailController.js"; // if these live in services/otpService.js, update the path
 import { sendEmail } from "../utils/sendEmail.js";
 import { otpEmailHTML } from "../utils/emailTemplates.js";
 
 const OTP_MINUTES = Number(process.env.OTP_EXP_MINUTES || 10);
 
+/* ------------------------- helpers ------------------------- */
+const isBlank = (v) =>
+  v === undefined ||
+  v === null ||
+  (typeof v === "string" && v.trim().length === 0);
+
+function requireFields(res, body, fields) {
+  const missing = fields.filter((f) => isBlank(body?.[f]));
+  if (missing.length) {
+    res.status(400).json({
+      message: "Missing required fields",
+      missing, // e.g. ["name","email","password"]
+    });
+    return false;
+  }
+  return true;
+}
+
+const normalizeEmail = (e) =>
+  typeof e === "string" ? e.trim().toLowerCase() : e;
+
+/* ------------------------- auth: register/login/logout ------------------------- */
+
 // REGISTER (do NOT log in; send email verification code)
 export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  // validate
+  if (!requireFields(res, req.body, ["name", "email", "password"])) return;
 
-  const exists = await User.findOne({ email: (email || "").toLowerCase() });
+  const name = req.body.name.trim();
+  const email = normalizeEmail(req.body.email);
+  const password = req.body.password;
+
+  const exists = await User.findOne({ email });
   if (exists) return res.status(400).json({ message: "Email already in use" });
 
   const hashed = await bcrypt.hash(password, 10);
@@ -31,7 +60,7 @@ export const registerUser = async (req, res) => {
 
   const user = await User.create({
     name,
-    email: email.toLowerCase(),
+    email,
     password: hashed,
     spouseCode: code,
     emailVerified: false,
@@ -54,7 +83,7 @@ export const registerUser = async (req, res) => {
       appName: process.env.APP_NAME || "Savings Tracker",
       code: otp,
       minutes: OTP_MINUTES,
-      ctaHref: "http://localhost:5173",
+      ctaHref: "https://stashly-kappa.vercel.app/",
       ctaLabel: "Open App",
     }),
   });
@@ -67,10 +96,10 @@ export const registerUser = async (req, res) => {
 
 // RESEND EMAIL VERIFICATION CODE
 export const verifyEmailRequest = async (req, res) => {
-  const { email } = req.body || {};
-  if (!email) return res.status(400).json({ message: "Email is required" });
+  if (!requireFields(res, req.body, ["email"])) return;
 
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const email = normalizeEmail(req.body.email);
+  const user = await User.findOne({ email });
   if (!user) return res.status(404).json({ message: "User not found" });
   if (user.emailVerified)
     return res.json({ message: "Email already verified" });
@@ -90,7 +119,7 @@ export const verifyEmailRequest = async (req, res) => {
       appName: process.env.APP_NAME || "Savings Tracker",
       code,
       minutes: OTP_MINUTES,
-      ctaHref: "http://localhost:5173",
+      ctaHref: "https://stashly-kappa.vercel.app/",
     }),
   });
 
@@ -99,14 +128,14 @@ export const verifyEmailRequest = async (req, res) => {
 
 // CONFIRM EMAIL VERIFICATION (logs user in after success)
 export const verifyEmailConfirm = async (req, res) => {
-  const { email, otp } = req.body || {};
-  if (!email || !otp)
-    return res.status(400).json({ message: "Missing fields" });
+  if (!requireFields(res, req.body, ["email", "otp"])) return;
 
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const email = normalizeEmail(req.body.email);
+  const otp = String(req.body.otp);
+
+  const user = await User.findOne({ email });
   if (!user) return res.status(404).json({ message: "User not found" });
   if (user.emailVerified) {
-    // If already verified, just log them in
     generateToken(res, user._id);
     return res.json({ _id: user._id, name: user.name, email: user.email });
   }
@@ -131,9 +160,12 @@ export const verifyEmailConfirm = async (req, res) => {
 
 // LOGIN (block if not verified)
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  if (!requireFields(res, req.body, ["email", "password"])) return;
 
-  const user = await User.findOne({ email: (email || "").toLowerCase() });
+  const email = normalizeEmail(req.body.email);
+  const password = req.body.password;
+
+  const user = await User.findOne({ email });
   if (!user || !(await bcrypt.compare(password, user.password)))
     return res.status(401).json({ message: "Invalid email or password" });
 
@@ -153,6 +185,7 @@ export const logoutUser = (req, res) => {
   res.status(200).json({ message: "Logged out" });
 };
 
+// Me
 export const getMe = async (req, res) => {
   const user = await User.findById(req.user._id).select(
     "_id name email spouse spouseCode"
@@ -168,7 +201,8 @@ export const getMe = async (req, res) => {
   });
 };
 
-// SPOUSE STUFF (unchanged)
+/* ------------------------- spouse features ------------------------- */
+
 export const refreshSpouseCode = async (req, res) => {
   let newCode;
   let duplicate;
@@ -185,6 +219,8 @@ export const refreshSpouseCode = async (req, res) => {
 };
 
 export const linkSpouseByCode = async (req, res) => {
+  if (!requireFields(res, req.body, ["code"])) return;
+
   const { code } = req.body;
 
   const spouse = await User.findOne({ spouseCode: code });
@@ -227,4 +263,37 @@ export const unlinkSpouse = async (req, res) => {
 export const getSpouseCode = async (req, res) => {
   const user = await User.findById(req.user._id).select("spouseCode");
   res.status(200).json({ spouseCode: user.spouseCode });
+};
+
+export const deleteUser = async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) return res.status(400).json({ message: "Missing user id in URL" });
+
+  // only allow deleting your own account
+  if (req.user._id.toString() !== id) {
+    return res
+      .status(403)
+      .json({ message: "Forbidden: you can only delete your own account" });
+  }
+
+  const user = await User.findById(id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  // If linked, unlink spouse on the other side
+  if (user.spouse) {
+    const spouse = await User.findById(user.spouse);
+    if (spouse) {
+      spouse.spouse = null;
+      await spouse.save();
+    }
+  }
+
+  // Delete the user
+  await User.findByIdAndDelete(id);
+
+  // Clear auth cookie
+  res.cookie("jwt", "", { httpOnly: true, expires: new Date(0) });
+
+  return res.json({ message: "Account deleted" });
 };
