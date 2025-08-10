@@ -10,6 +10,7 @@ import {
   getSpouseCode,
   verifyEmailRequest,
   verifyEmailConfirm,
+  getMe,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authmiddleware.js";
 
@@ -21,6 +22,7 @@ router.post("/verify-email/request", verifyEmailRequest); // resend code
 router.post("/verify-email/confirm", verifyEmailConfirm); // confirm code -> logs in
 router.post("/login", loginUser); // will 403 if not verified
 router.post("/logout", logoutUser);
+router.get("/me", protect, getMe);
 
 // Spouse features
 router.post("/refresh-spouse-code", protect, refreshSpouseCode);
