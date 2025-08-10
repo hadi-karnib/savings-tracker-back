@@ -7,6 +7,7 @@ import {
   linkSpouseByCode,
   unlinkSpouse,
   getSpouseCode,
+  getMe,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authmiddleware.js";
 
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
+router.get("/me", protect, getMe);
 
 router.post("/refresh-spouse-code", protect, refreshSpouseCode);
 router.post("/link-spouse", protect, linkSpouseByCode);

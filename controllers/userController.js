@@ -54,6 +54,20 @@ export const logoutUser = (req, res) => {
   res.status(200).json({ message: "Logged out" });
 };
 
+export const getMe = async (req, res) => {
+  const user = await User.findById(req.user._id).select("_id name email spouse spouseCode");
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  res.status(200).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    spouse: user.spouse,
+    spouseCode: user.spouseCode,
+    
+  });
+};
+
 export const refreshSpouseCode = async (req, res) => {
   let newCode;
   let duplicate;
